@@ -21,7 +21,6 @@ export class BadApple extends Component {
     @property(AudioClip)
     audioClip!: AudioClip
 
-    allTexts: string[][] = []
     points: Node[][] = []
 
     time: number = 0
@@ -29,7 +28,8 @@ export class BadApple extends Component {
     async start() {
         // 初始化 75 * 300 = 22500 的点阵屏幕，异步加载
         await this.initPointScreen()
-        await this.initAllTextAssets()
+        const allTexts = await this.loadAllTxtAssets()
+        if (!allTexts) { return }
         // 显示开始按钮
         this.startButton.node.active = true
     }
@@ -41,9 +41,10 @@ export class BadApple extends Component {
         // 播放音乐
         this.audioClip.play()
         // 计时器开启
-        this.schedule(() => {
-            const textData = this.allTexts[videoIndex]
-            if (!textData) { return }
+        this.schedule(async () => {
+            const textAsset = await this.loadTxtAsset(videoIndex)
+            if (!textAsset) { return }
+            const textData = textAsset.text.split('\n')
             textData.forEach((lineText, index) => {
                 for (let i = 0; i < lineText.length; i++) {
                     const sp = this.points[index][i].getComponent(Sprite)
@@ -51,7 +52,7 @@ export class BadApple extends Component {
                 }
             })
             videoIndex += 1
-        }, 1/10, 2190, 0)
+        }, 1/10, 2190-1, 0)
     }
 
     async initPointScreen() {
@@ -80,28 +81,28 @@ export class BadApple extends Component {
         this.loadingPointLabel.string = ''
     }
 
-    async initAllTextAssets() {
-        const textAssetArr = []
-        // 加载资源 2190 个 txt
-        for (let i = 0; i < 2190; i++) {
-            const textAsset = await this.loadTxtAsset(i)
-            textAssetArr[i] = textAsset
-            this.loadingTxtLabel.string = `帧数据: ${i+1} / 2190`
-        }
-
-        this.loadingTxtLabel.string = ''
-        // 拿到帧数据文本数据，切割处理
-        this.allTexts = textAssetArr.map(tAsset => {
-            if (!tAsset) {
-                return []
-            }
-            return tAsset.text.split('\n')
-        })
-    }
-
     waitOneDt() {
         return new Promise((resolve, reject) => {
             this.scheduleOnce(() => resolve(undefined), 0)
+        })
+    }
+
+    loadAllTxtAssets() {
+        return new Promise<TextAsset[]>((resolve, reject) => {
+            resources.loadDir(
+                `txt`,
+                TextAsset,
+                (item, total) => {
+                    this.loadingTxtLabel.string = `帧数据: ${item} / ${total}`
+                },
+                (err, texts) => {
+                    if (err) {
+                        reject(undefined)
+                    }
+                    resolve(texts)
+                    this.loadingTxtLabel.string = ''
+                }
+            )
         })
     }
 
