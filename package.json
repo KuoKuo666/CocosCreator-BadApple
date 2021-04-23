@@ -2,5 +2,6 @@
   "name": "BadApple",
   "type": "3d",
   "uuid": "d478be78-870c-45d6-9097-7a55628109a0",
-  "version": "3.0.1"
+  "version": "3.0.1",
+  "dependencies": {}
 }
